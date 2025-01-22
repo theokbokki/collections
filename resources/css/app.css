@@ -136,28 +136,8 @@ body {
     height: 100vh;
 }
 
-#canvas {
-    position: absolute;
-    width: 100000px;
-    height: 100000px;
-    left: -50000px;
-    top: -50000px;
+canvas {
+    display: block;
     background: white;
     cursor: grab;
-    transform-origin: center center;
-}
-
-#canvas:active {
-    cursor: grabbing;
-}
-
-.image {
-    position: absolute;
-    cursor: move;
-    user-select: none;
-    touch-action: none;
-    max-width: 300px;
-    max-height: 300px;
-    transform-origin: center center;
-    transition: transform 0.1s;
 }

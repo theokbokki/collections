@@ -1,80 +1,76 @@
-import axios from "axios";
 import "./bootstrap";
 
 class App {
     constructor(el) {
         this.el = el;
+        this.canvas = this.el.querySelector("#canvas");
+        this.ctx = this.canvas.getContext("2d");
 
         this.setDefaults();
-        this.getElements();
+        this.initCanvas();
         this.setEvents();
-        this.updateTransform();
+        this.startRendering();
     }
 
     setDefaults() {
-        this.transform = {
-            x: window.innerWidth / 2,
-            y: window.innerHeight / 2,
+        this.state = {
             scale: 1,
+            offset: { x: 0, y: 0 },
+            images: [],
+            draggingImage: null,
+            isPanning: false,
+            lastMouse: { x: 0, y: 0 },
+            zoomLimits: { min: 0.1, max: 10 },
+            zoomSpeed: 0.25,
+            minImageSize: 300,
         };
-        this.isDragging = false;
-        this.lastX = 0;
-        this.lastY = 0;
-        this.selectedImage = null;
-        this.imgStartX = 0;
-        this.imgStartY = 0;
-        this.mouseStartX = 0;
-        this.mouseStartY = 0;
-        this.canvasSize = 100000;
     }
 
-    getElements() {
-        this.canvas = this.el.querySelector("#canvas");
+    initCanvas() {
+        this.canvas.width = window.innerWidth;
+        this.canvas.height = window.innerHeight;
+
+        window.addEventListener("resize", () => {
+            this.canvas.width = window.innerWidth;
+            this.canvas.height = window.innerHeight;
+        });
     }
 
     setEvents() {
-        this.canvas.addEventListener("dragover", this.handleDragOver.bind(this));
-
-        this.canvas.addEventListener("drop", this.handleDrop.bind(this));
-
-        this.canvas.addEventListener("mousedown", this.handleMouseDown.bind(this));
-
-        document.addEventListener("mousemove", this.handleMouseMove.bind(this));
-
-        document.addEventListener("mouseup", this.handleMouseUp.bind(this));
-
-        this.canvas.addEventListener("wheel", this.handleWheel.bind(this));
-    }
-
-    handleDragOver(e) {
-        e.preventDefault();
-        e.dataTransfer.dropEffect = "copy";
+        this.canvas.addEventListener("drop", (e) => this.handleDrop(e));
+        this.canvas.addEventListener("mousedown", (e) => this.handleMouseDown(e));
+        this.canvas.addEventListener("mousemove", (e) => this.handleMouseMove(e));
+        this.canvas.addEventListener("mouseup", () => this.handleMouseUp());
+        this.canvas.addEventListener("wheel", (e) => this.handleWheel(e));
     }
 
     handleDrop(e) {
         e.preventDefault();
-        const files = e.dataTransfer.files;
 
+        const files = e.dataTransfer.files;
         Array.from(files).forEach((file) => {
             if (file.type.startsWith("image/")) {
                 const reader = new FileReader();
-
                 reader.onload = (event) => {
                     const img = new Image();
                     img.src = event.target.result;
-                    img.className = "image";
+                    img.onload = () => {
+                        const originalWidth = img.naturalWidth;
+                        const originalHeight = img.naturalHeight;
+                        const minDimension = Math.min(originalWidth, originalHeight);
+                        const scaleFactor = this.minImageSize / minDimension;
+                        const width = originalWidth * scaleFactor;
+                        const height = originalHeight * scaleFactor;
+                        const pos = this.screenToCanvas(e.clientX, e.clientY);
 
-                    const rect = canvas.getBoundingClientRect();
-                    const x = (e.clientX - rect.left) / this.transform.scale;
-                    const y = (e.clientY - rect.top) / this.transform.scale;
-
-                    img.style.left = `${x - img.naturalWidth / 2}px`;
-                    img.style.top = `${y - img.naturalHeight / 2}px`;
-
-                    img.draggable = false;
-                    img.addEventListener("dragstart", (e) => e.preventDefault());
-
-                    this.canvas.appendChild(img);
+                        this.state.images.push({
+                            img,
+                            x: pos.x - width / 2,
+                            y: pos.y - height / 2,
+                            width,
+                            height,
+                        });
+                    };
                 };
 
                 reader.readAsDataURL(file);
@@ -83,79 +79,104 @@ class App {
     }
 
     handleMouseDown(e) {
-        if (e.target === this.canvas) {
-            this.isDragging = true;
-            this.lastX = e.clientX;
-            this.lastY = e.clientY;
-            this.canvas.style.cursor = "grabbing";
-        }
+        if (e.button === 0) {
+            const pos = this.screenToCanvas(e.clientX, e.clientY);
 
-        if (e.target.classList.contains("image")) {
-            this.selectedImage = e.target;
-            this.imgStartX = parseFloat(this.selectedImage.style.left);
-            this.imgStartY = parseFloat(this.selectedImage.style.top);
-            this.mouseStartX = e.clientX;
-            this.mouseStartY = e.clientY;
-            e.preventDefault();
+            for (let i = this.state.images.length - 1; i >= 0; i--) {
+                const img = this.state.images[i];
+
+                if (this.isPointInImage(pos.x, pos.y, img)) {
+                    this.state.draggingImage = {
+                        image: img,
+                        offsetX: pos.x - img.x,
+                        offsetY: pos.y - img.y,
+                    };
+
+                    break;
+                }
+            }
+
+            if (!this.state.draggingImage) {
+                this.state.isPanning = true;
+                this.state.lastMouse = { x: e.clientX, y: e.clientY };
+                this.canvas.style.cursor = "grabbing";
+            }
         }
     }
 
     handleMouseMove(e) {
-        if (this.isDragging) {
-            const dx = e.clientX - this.lastX;
-            const dy = e.clientY - this.lastY;
-            this.lastX = e.clientX;
-            this.lastY = e.clientY;
+        if (this.state.isPanning) {
+            const dx = (e.clientX - this.state.lastMouse.x) / this.state.scale;
+            const dy = (e.clientY - this.state.lastMouse.y) / this.state.scale;
 
-            this.transform.x += dx;
-            this.transform.y += dy;
+            this.state.offset.x += dx;
+            this.state.offset.y += dy;
+            this.state.lastMouse = { x: e.clientX, y: e.clientY };
+        } else if (this.state.draggingImage) {
+            const pos = this.screenToCanvas(e.clientX, e.clientY);
 
-            this.updateTransform();
-        }
-
-        if (this.selectedImage) {
-            const dx = (e.clientX - this.mouseStartX) / this.transform.scale;
-            const dy = (e.clientY - this.mouseStartY) / this.transform.scale;
-
-            this.selectedImage.style.left = `${this.imgStartX + dx}px`;
-            this.selectedImage.style.top = `${this.imgStartY + dy}px`;
+            this.state.draggingImage.image.x = pos.x - this.state.draggingImage.offsetX;
+            this.state.draggingImage.image.y = pos.y - this.state.draggingImage.offsetY;
         }
     }
 
-    handleMouseUp(e) {
-        this.isDragging = false;
+    handleMouseUp() {
+        this.state.isPanning = false;
+        this.state.draggingImage = null;
         this.canvas.style.cursor = "grab";
-        this.selectedImage = null;
     }
 
     handleWheel(e) {
         e.preventDefault();
-        const delta = e.deltaY > 0 ? 0.9 : 1.1;
-        const newScale = this.transform.scale * delta;
 
-        const clampedScale = Math.min(Math.max(newScale, 0.1), 10);
-        const scaleFactor = clampedScale / this.transform.scale;
+        const delta = e.deltaY * -this.state.zoomSpeed;
+        const originalScale = this.state.scale;
+        let newScale = originalScale * Math.exp(delta / 100);
 
-        this.transform.x = e.clientX - (e.clientX - this.transform.x) * scaleFactor;
-        this.transform.y = e.clientY - (e.clientY - this.transform.y) * scaleFactor;
-        this.transform.scale = clampedScale;
+        newScale = Math.max(this.state.zoomLimits.min, Math.min(newScale, this.state.zoomLimits.max));
 
-        this.updateTransform();
+        const rect = this.canvas.getBoundingClientRect();
+        const screenX = e.clientX - rect.left;
+        const screenY = e.clientY - rect.top;
+
+        this.state.offset.x += screenX * (1 / newScale - 1 / originalScale);
+        this.state.offset.y += screenY * (1 / newScale - 1 / originalScale);
+
+        this.state.scale = newScale;
     }
 
-    updateTransform() {
-        const maxX = (this.canvasSize / 2) * this.transform.scale - window.innerWidth / 2;
-        const minX = (-this.canvasSize / 2) * this.transform.scale + window.innerWidth / 2;
-        const maxY = (this.canvasSize / 2) * this.transform.scale - window.innerHeight / 2;
-        const minY = (-this.canvasSize / 2) * this.transform.scale + window.innerHeight / 2;
+    screenToCanvas(clientX, clientY) {
+        const rect = this.canvas.getBoundingClientRect();
 
-        this.transform.x = Math.max(minX, Math.min(this.transform.x, maxX));
-        this.transform.y = Math.max(minY, Math.min(this.transform.y, maxY));
+        return {
+            x: (clientX - rect.left) / this.state.scale - this.state.offset.x,
+            y: (clientY - rect.top) / this.state.scale - this.state.offset.y,
+        };
+    }
 
-        this.canvas.style.transform = `
-            translate(${this.transform.x}px, ${this.transform.y}px)
-            scale(${this.transform.scale})
-        `;
+    isPointInImage(x, y, image) {
+        return x >= image.x
+            && x <= image.x + image.width
+            && y >= image.y
+            && y <= image.y + image.height;
+    }
+
+    startRendering() {
+        const render = () => {
+            this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+            this.ctx.save();
+            this.ctx.scale(this.state.scale, this.state.scale);
+            this.ctx.translate(this.state.offset.x, this.state.offset.y);
+
+            this.state.images.forEach((img) => {
+                this.ctx.drawImage(img.img, img.x, img.y, img.width, img.height);
+            });
+
+            this.ctx.restore();
+            requestAnimationFrame(render);
+        };
+
+        render();
     }
 }
 
