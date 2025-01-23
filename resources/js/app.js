@@ -37,11 +37,17 @@ class App {
     }
 
     setEvents() {
+        this.canvas.addEventListener("dragover", (e) => this.handleDragOver(e));
         this.canvas.addEventListener("drop", (e) => this.handleDrop(e));
         this.canvas.addEventListener("mousedown", (e) => this.handleMouseDown(e));
         this.canvas.addEventListener("mousemove", (e) => this.handleMouseMove(e));
         this.canvas.addEventListener("mouseup", () => this.handleMouseUp());
         this.canvas.addEventListener("wheel", (e) => this.handleWheel(e));
+    }
+
+    handleDragOver(e) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "copy";
     }
 
     handleDrop(e) {
@@ -58,7 +64,7 @@ class App {
                         const originalWidth = img.naturalWidth;
                         const originalHeight = img.naturalHeight;
                         const minDimension = Math.min(originalWidth, originalHeight);
-                        const scaleFactor = this.minImageSize / minDimension;
+                        const scaleFactor = this.state.minImageSize / minDimension;
                         const width = originalWidth * scaleFactor;
                         const height = originalHeight * scaleFactor;
                         const pos = this.screenToCanvas(e.clientX, e.clientY);
@@ -155,10 +161,7 @@ class App {
     }
 
     isPointInImage(x, y, image) {
-        return x >= image.x
-            && x <= image.x + image.width
-            && y >= image.y
-            && y <= image.y + image.height;
+        return x >= image.x && x <= image.x + image.width && y >= image.y && y <= image.y + image.height;
     }
 
     startRendering() {
