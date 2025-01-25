@@ -7,7 +7,7 @@
         <title>Laravel</title>
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
-    <body class="app">
-        <canvas id="canvas"></canvas>
+    <body id="app" class="h-screen">
+        {{ $slot }}
     </body>
 </html>

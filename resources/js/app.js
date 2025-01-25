@@ -184,5 +184,5 @@ class App {
 }
 
 window.addEventListener("DOMContentLoaded", () => {
-    new App(document.querySelector(".app"));
+    new App(document.getElementById("app"));
 });
