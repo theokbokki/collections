@@ -3,6 +3,6 @@
     <input type="checkbox"
         id="{{ $id }}"
         name="{{ $name }}"
-        class="appearance-none -order-1 w-16 h-16 rounded-sm border border-stone-300 transition-all duration-250 outline-none ring-0 ring-orange-100 absolute  hover:cursor-pointer hover:not-checked:border-stone-500 focus-visible:border-orange-600 focus-visible:ring-2 checked:border-orange-600 checked:bg-orange-500"
+        class="appearance-none -order-1 w-16 h-16 shadow-xs rounded-sm border border-stone-300 transition-all duration-250 outline-none ring-0 ring-orange-100 absolute  hover:cursor-pointer hover:not-checked:border-stone-500 focus-visible:border-orange-600 focus-visible:ring-2 checked:border-orange-600 checked:bg-orange-500"
     >
 </div>

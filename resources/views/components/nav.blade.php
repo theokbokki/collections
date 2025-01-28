@@ -8,7 +8,7 @@
         <x-search/>
     </div>
     <div class="flex items-center gap-24 justify-self-end">
-        <x-button type="button">New collection</x-button>
+        <x-button type="button" class="[&]:py-8">New collection</x-button>
         <x-profile-picture />
     </div>
 </nav>
