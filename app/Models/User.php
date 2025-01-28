@@ -2,15 +2,19 @@
 
 namespace App\Models;
 
+use App\Concerns\GeneratesGradient;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Storage;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory;
+    use Notifiable;
+    use GeneratesGradient;
 
     /**
      * The attributes that are mass assignable.
@@ -46,8 +50,23 @@ class User extends Authenticatable
         ];
     }
 
+    /**
+     * The "booted" method of the model.
+     */
+    protected static function booted(): void
+    {
+        static::creating(function (User $user) {
+            $user->default_avatar = $user->generateGradient();
+        });
+    }
+
     public function collections(): HasMany
     {
         return $this->hasMany(Collection::class);
+    }
+
+    public function getAvatar()
+    {
+        return Storage::disk('local')->get('/avatars/'.$this->id);
     }
 }

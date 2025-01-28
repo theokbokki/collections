@@ -1,9 +1,22 @@
 @import "tailwindcss";
 @source "../views";
 
+@font-face {
+    font-family: 'Instrument Serif';
+    src: url('../fonts/InstrumentSerif-Italic.eot');
+    src: url('../fonts/InstrumentSerif-Italic.eot?#iefix') format('embedded-opentype'),
+        url('../fonts/InstrumentSerif-Italic.woff2') format('woff2'),
+        url('../fonts/InstrumentSerif-Italic.woff') format('woff'),
+        url('../fonts/InstrumentSerif-Italic.ttf') format('truetype');
+    font-weight: normal;
+    font-style: italic;
+    font-display: swap;
+}
+
 @theme {
     --spacing: 0.0625rem;
     --card-rotate: perspective(1200px) rotateX(6deg);
+    --font-instrument: "Instrument serif", var(--font-serif);
 }
 
 :root {
