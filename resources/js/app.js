@@ -1,15 +1,24 @@
 import "./bootstrap";
+import Dashboard from "./pages/Dashboard"
 
 class App {
     constructor(el) {
         this.el = el;
-        this.canvas = this.el.querySelector("#canvas");
-        this.ctx = this.canvas.getContext("2d");
+        this.page = this.getPage(this.el);
+        // this.canvas = this.el.querySelector("#canvas");
+        // this.ctx = this.canvas.getContext("2d");
 
-        this.setDefaults();
-        this.initCanvas();
-        this.setEvents();
-        this.startRendering();
+        // this.setDefaults();
+        // this.initCanvas();
+        // this.setEvents();
+        // this.startRendering();
+    }
+
+    getPage(el) {
+        switch (el.dataset.page) {
+            case "dashboard":
+                return new Dashboard(el);
+        }
     }
 
     setDefaults() {

@@ -7,7 +7,10 @@
         <title>Laravel</title>
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
-    <body id="app" class="h-screen">
+    <body id="app"
+        @isset($page) data-page="{{ $page }}" @endisset
+        class="h-screen"
+    >
         {{ $slot }}
     </body>
 </html>

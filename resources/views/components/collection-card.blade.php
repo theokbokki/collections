@@ -1,4 +1,7 @@
-<article class="w-full flex flex-col group hover:cursor-pointer">
+<article
+    @unless(isset($collection)) data-form="draft-collection" @endunless
+    class="w-full flex flex-col group hover:cursor-pointer"
+>
     <h3 class="mt-16 text-stone-800">
     @isset($collection)
         {{ $collection->name }}

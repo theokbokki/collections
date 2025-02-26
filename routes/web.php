@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\DraftCollectionController;
 use App\Http\Controllers\StoreRegisterController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\StoreLoginController;
@@ -16,4 +17,6 @@ Route::middleware('guest')->group(function () {
 
 Route::middleware('auth')->group(function () {
     Route::view('/dashboard', 'dashboard')->name('dashboard');
+
+    Route::get('/collection/draft', DraftCollectionController::class)->name('collection.draft');
 });
